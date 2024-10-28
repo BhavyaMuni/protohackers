@@ -6,13 +6,7 @@
 app = 'protohackers-bhavya-crimson-water-1099'
 primary_region = 'yyz'
 
-[build]
-
-[env]
-  PORT = '8080'
-
 [http_service]
-  internal_port = 8080
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = false
