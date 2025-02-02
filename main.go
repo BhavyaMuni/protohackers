@@ -3,12 +3,15 @@ package main
 import (
 	"net"
 
-	"github.com/bhavyamuni/protohackers/server"
+	"github.com/BhavyaMuni/protohackers/server"
 )
 
 func main() {
 	es := server.NewEchoServer()
-	go es.Start("10000")
+	go es.Start(":10000")
+
+	pts := server.NewPrimeTimeServer()
+	go pts.Start(":10001")
 
 	select {}
 }

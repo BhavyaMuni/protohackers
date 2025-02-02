@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log"
+	"io"
 	"net"
 )
 
@@ -16,11 +16,5 @@ func NewEchoServer() *EchoServer {
 }
 
 func (es EchoServer) handleConnection(conn net.Conn) {
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		log.Println("Error reading:", err)
-	}
-	log.Printf("Received: %s\n", buf[:n])
-	conn.Write(buf[:n])
+	io.Copy(conn, conn)
 }

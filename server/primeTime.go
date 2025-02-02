@@ -1,9 +1,10 @@
 package server
 
-type PrimeTimeServer struct {
-	request  PrimeTimeRequest
-	response PrimeTimeResponse
-}
+import (
+	"encoding/json"
+	"fmt"
+	"net"
+)
 
 type PrimeTimeRequest struct {
 	Method string  `json:"method"`
@@ -15,11 +16,48 @@ type PrimeTimeResponse struct {
 	Prime  bool   `json:"prime"`
 }
 
-func ValidRequest(request PrimeTimeRequest) bool {
-	if request.Method != "isPrime" || request.Number < 0 {
-		return true
+type PrimeTimeServer struct {
+	BaseServer
+}
+
+func (request PrimeTimeRequest) ValidRequest() bool {
+	if request.Method != "isPrime" {
+		return false
 	}
-	return false
+	return true
+}
+
+func NewPrimeTimeServer() *PrimeTimeServer {
+	s := &PrimeTimeServer{}
+	s.HandleConnectionFunc = s.handleConnection
+	return s
+}
+
+func (PrimeTimeServer) handleConnection(conn net.Conn) {
+	buf := make([]byte, 2048)
+	n, err := conn.Read(buf)
+	if err != nil {
+		return
+	}
+
+	var req PrimeTimeRequest
+	err = json.Unmarshal(buf[:n], &req)
+	if err != nil {
+		fmt.Println("Error unmarshalling")
+		return
+	}
+
+	fmt.Println(req)
+
+	if !req.ValidRequest() {
+		fmt.Println("Invalid")
+		return
+	}
+
+	res := PrimeTimeResponse{Method: req.Method, Prime: IsPrime(req.Number)}
+
+	data, _ := json.Marshal(res)
+	conn.Write(data)
 }
 
 func IsPrime(n float64) bool {
@@ -32,11 +70,4 @@ func IsPrime(n float64) bool {
 		}
 	}
 	return true
-}
-
-func (pt PrimeTimeServer) HandleRequest() PrimeTimeResponse {
-	if ValidRequest(pt.request) {
-		return PrimeTimeResponse{Method: pt.request.Method, Prime: IsPrime(pt.request.Number)}
-	}
-	return PrimeTimeResponse{Method: pt.request.Method, Prime: false}
 }
