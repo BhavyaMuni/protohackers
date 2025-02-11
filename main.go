@@ -7,12 +7,12 @@ import (
 )
 
 func main() {
-	// es := server.NewEchoServer()
-	// go es.Start(":10000")
+	log.Print("Starting servers...")
+	es := server.NewEchoServer()
+	go es.Start(":10000")
 
-	log.Print("Starting server...")
 	pts := server.NewPrimeTimeServer()
-	go pts.Start(":10000")
+	go pts.Start(":10001")
 
 	select {}
 }

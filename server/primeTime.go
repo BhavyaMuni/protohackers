@@ -26,7 +26,7 @@ func (b *PrimeTimeInt) UnmarshalJSON(data []byte) error {
 	} else if _, err := strconv.ParseFloat(string(data[:]), 64); err == nil {
 		b.Int = *big.NewInt(0)
 	} else {
-		return fmt.Errorf("Cannot unmarshall")
+		return fmt.Errorf("Invalid number format")
 	}
 
 	return nil

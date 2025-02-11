@@ -7,18 +7,25 @@ app = 'protohackers-bhavya-crimson-water-1099'
 primary_region = 'yyz'
 
 [http_service]
-  force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = false
-  min_machines_running = 0
-  processes = ['app']
+force_https = true
+auto_stop_machines = 'stop'
+auto_start_machines = false
+min_machines_running = 0
+processes = ['app']
 
 [[services]]
-  protocol = 'tcp'
-  internal_port = 10000
+protocol = 'tcp'
+internal_port = 10000
 
-  [[services.ports]]
-    port = 10000
+[[services.ports]]
+port = 10000
+
+[[services]]
+protocol = 'tcp'
+internal_port = 10001
+
+[[services.ports]]
+port = 10001
 
 [[vm]]
-  size = 'shared-cpu-1x'
+size = 'shared-cpu-1x'
