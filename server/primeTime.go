@@ -1,14 +1,35 @@
 package server
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math/big"
 	"net"
+	"strconv"
 )
 
+type PrimeTimeInt struct {
+	big.Int
+}
+
 type PrimeTimeRequest struct {
-	Method string  `json:"method"`
-	Number float64 `json:"number"`
+	Method *string       `json:"method"`
+	Number *PrimeTimeInt `json:"number"`
+}
+
+func (b *PrimeTimeInt) UnmarshalJSON(data []byte) error {
+	var z big.Int
+	if _, ok := z.SetString(string(data[:]), 10); ok {
+		b.Int = z
+	} else if _, err := strconv.ParseFloat(string(data[:]), 64); err == nil {
+		b.Int = *big.NewInt(0)
+	} else {
+		return fmt.Errorf("Cannot unmarshall")
+	}
+
+	return nil
 }
 
 type PrimeTimeResponse struct {
@@ -20,10 +41,11 @@ type PrimeTimeServer struct {
 	BaseServer
 }
 
-func (request PrimeTimeRequest) ValidRequest() bool {
-	if request.Method != "isPrime" {
+func (request *PrimeTimeRequest) validRequest() bool {
+	if request.Method == nil || *request.Method != "isPrime" || request.Number == nil {
 		return false
 	}
+
 	return true
 }
 
@@ -33,41 +55,40 @@ func NewPrimeTimeServer() *PrimeTimeServer {
 	return s
 }
 
-func (PrimeTimeServer) handleConnection(conn net.Conn) {
-	buf := make([]byte, 2048)
-	n, err := conn.Read(buf)
-	if err != nil {
-		return
-	}
-
-	var req PrimeTimeRequest
-	err = json.Unmarshal(buf[:n], &req)
-	if err != nil {
-		fmt.Println("Error unmarshalling")
-		return
-	}
-
-	fmt.Println(req)
-
-	if !req.ValidRequest() {
-		fmt.Println("Invalid")
-		return
-	}
-
-	res := PrimeTimeResponse{Method: req.Method, Prime: IsPrime(req.Number)}
-
-	data, _ := json.Marshal(res)
-	conn.Write(data)
+func isPrime(n *big.Int) bool {
+	return n.ProbablyPrime(20)
 }
 
-func IsPrime(n float64) bool {
-	if n < 2 {
-		return false
-	}
-	for i := 2; i*i <= int(n); i++ {
-		if int(n)%i == 0 {
-			return false
+func (PrimeTimeServer) handleConnection(conn net.Conn) {
+
+	log.Println("Connected with...")
+	log.Println(conn.RemoteAddr())
+
+	connReader := bufio.NewReader(conn)
+	connWriter := bufio.NewWriter(conn)
+
+	for {
+		line, err := connReader.ReadBytes('\n')
+		if err != nil {
+			break
 		}
+		req := PrimeTimeRequest{}
+
+		err = json.Unmarshal(line, &req)
+		if err != nil || !req.validRequest() {
+			fmt.Println(req)
+			connWriter.Write([]byte("💩\n"))
+			log.Println("Invalid request, recieved: " + string(line))
+			break
+		}
+		log.Println("Request: ", req)
+		resp := PrimeTimeResponse{Method: "isPrime", Prime: isPrime(&req.Number.Int)}
+		respBytes, err := json.Marshal(resp)
+		respBytes = append(respBytes, '\n')
+		if err != nil {
+			break
+		}
+		connWriter.Write(respBytes)
+		connWriter.Flush()
 	}
-	return true
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"io"
+	"log"
 	"net"
 )
 
@@ -16,5 +17,7 @@ func NewEchoServer() *EchoServer {
 }
 
 func (es EchoServer) handleConnection(conn net.Conn) {
+	log.Println("Connected with...")
+	log.Println(conn.RemoteAddr())
 	io.Copy(conn, conn)
 }
