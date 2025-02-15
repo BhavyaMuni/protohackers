@@ -14,5 +14,7 @@ func main() {
 	pts := server.NewPrimeTimeServer()
 	go pts.Start(":10001")
 
+	mtes := server.NewMeansToAnEndServer()
+	go mtes.Start(":10002")
 	select {}
 }
