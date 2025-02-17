@@ -16,5 +16,8 @@ func main() {
 
 	mtes := server.NewMeansToAnEndServer()
 	go mtes.Start(":10002")
+
+	bcs := server.NewBudgetChatServer()
+	go bcs.Start(":10003")
 	select {}
 }
