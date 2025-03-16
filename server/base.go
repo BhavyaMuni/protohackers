@@ -9,6 +9,7 @@ type BaseServer struct {
 }
 
 func (s *BaseServer) Start(port string) error {
+
 	ln, err := net.Listen("tcp", port)
 	if err != nil {
 		return err

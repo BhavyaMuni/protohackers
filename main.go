@@ -19,5 +19,9 @@ func main() {
 
 	bcs := server.NewBudgetChatServer()
 	go bcs.Start(":10003")
+
+	uds := server.NewUnusualDatabaseServer()
+	go uds.Start(":10004")
+
 	select {}
 }
