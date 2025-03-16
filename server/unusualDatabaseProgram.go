@@ -20,7 +20,7 @@ func NewUnusualDatabaseServer() *UnusualDatabaseServer {
 }
 
 func (s *UnusualDatabaseServer) Start(port string) error {
-	udpAddr, err := net.ResolveUDPAddr("udp", port)
+	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("fly-global-services%s", port))
 	if err != nil {
 		fmt.Println("Error resolving UDP address:", err)
 		return err
@@ -48,7 +48,7 @@ func (s *UnusualDatabaseServer) Start(port string) error {
 		}
 		log.Println("Received request from", addr, ":", string(buffer[:n]))
 		received := string(buffer[:n])
-		response := s.handleDatabaseRequest(strings.TrimSpace(received))
+		response := s.handleDatabaseRequest(received)
 		conn.WriteTo([]byte(response), addr)
 		log.Println("Sent response to", addr, ":", response)
 	}
@@ -58,10 +58,7 @@ func (s *UnusualDatabaseServer) handleDatabaseRequest(request string) string {
 	if strings.Contains(request, "=") {
 		parts := strings.SplitN(request, "=", 2)
 		key := parts[0]
-		value := ""
-		if len(parts) > 1 {
-			value = parts[1]
-		}
+		value := parts[1]
 		if key == "version" {
 			return ""
 		}
