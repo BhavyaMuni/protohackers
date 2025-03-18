@@ -48,5 +48,12 @@ primary_region = 'yyz'
     [[services.ports]]
         port = 10004
 
+[[services]]
+    protocol = 'tcp'
+    internal_port = 10005
+
+    [[services.ports]]
+        port = 10005
+
 [[vm]]
   size = 'shared-cpu-1x'

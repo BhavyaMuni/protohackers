@@ -23,5 +23,8 @@ func main() {
 	uds := server.NewUnusualDatabaseServer()
 	go uds.Start(":10004")
 
+	mims := server.NewMobInTheMiddleServer()
+	go mims.Start(":10005")
+
 	select {}
 }
