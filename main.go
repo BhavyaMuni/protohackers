@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/BhavyaMuni/protohackers/server"
+	"github.com/BhavyaMuni/protohackers/speedDaemon"
 )
 
 func main() {
@@ -25,6 +26,9 @@ func main() {
 
 	mims := server.NewMobInTheMiddleServer()
 	go mims.Start(":10005")
+
+	ssd := speedDaemon.NewSpeedDaemonServer()
+	go ssd.Start(":10006")
 
 	select {}
 }

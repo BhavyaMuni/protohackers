@@ -16,7 +16,7 @@ type MeansToAnEndServer struct {
 	BaseServer
 }
 
-type Message struct {
+type MeansToAnEndMessage struct {
 	Type byte
 	P1   int32
 	P2   int32
@@ -50,7 +50,7 @@ func (MeansToAnEndServer) handleConnection(conn net.Conn) {
 	log.Println(conn.RemoteAddr())
 	queries := make(map[int32]int32)
 	for {
-		message := Message{}
+		message := MeansToAnEndMessage{}
 		err := binary.Read(conn, binary.BigEndian, &message)
 		if err != nil {
 			fmt.Println("binary.Read failed:", err)
