@@ -83,8 +83,9 @@ func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[
 		_, d2ok := (*ticketDays)[day2][ticket.Plate]
 		if !d1ok && !d2ok {
 			go d.SendTicket(*ticket)
+			log.Println("Sent ticket: ", ticket.Plate, "on day: ", day1, "and", day2)
 		} else {
-			log.Println("Ticket already sent: ", ticket.Plate)
+			log.Println("Ticket already sent: ", ticket.Plate, "on day: ", day1, "and", day2)
 		}
 		(*ticketDays)[day1][ticket.Plate] = true
 		(*ticketDays)[day2][ticket.Plate] = true
