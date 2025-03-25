@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
-	"sync"
 )
 
 type IAmDispatcherMessage struct {
@@ -48,9 +47,9 @@ func (m *IAmDispatcherMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 		dispatcher := Dispatcher{NumRoads: m.NumRoads, Roads: m.Roads, Conn: conn}
 		if _, ok := s.tickets[road]; !ok {
 			s.tickets[road] = make(chan *Ticket)
-			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays, &s.mu)
+			go dispatcher.MonitorTicketQueue(s, s.tickets[road])
 		} else {
-			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays, &s.mu)
+			go dispatcher.MonitorTicketQueue(s, s.tickets[road])
 		}
 	}
 }
@@ -70,20 +69,20 @@ func (d *Dispatcher) SendTicket(ticket Ticket) {
 	log.Println("Sent ticket: ", ticket)
 }
 
-func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[uint32]map[string]bool, mu *sync.Mutex) {
+func (d *Dispatcher) MonitorTicketQueue(server *SpeedDaemonServer, tickets <-chan *Ticket) {
 	for ticket := range tickets {
-		mu.Lock()
+		server.mu.Lock()
 		day := ticket.Timestamp1 / 86400
-		if _, ok := (*ticketDays)[day]; !ok {
-			(*ticketDays)[day] = make(map[string]bool)
+		if _, ok := server.ticketDays[day]; !ok {
+			server.ticketDays[day] = make(map[string]bool)
 		}
-		log.Println("Ticket days: ", (*ticketDays)[day])
-		if _, ok := (*ticketDays)[day][ticket.Plate]; !ok {
+		log.Println("Ticket days: ", server.ticketDays[day], "for plate: ", ticket.Plate, "on day: ", day)
+		if _, ok := server.ticketDays[day][ticket.Plate]; !ok {
 			go d.SendTicket(*ticket)
 		} else {
 			log.Println("Ticket already sent: ", ticket.Plate, "on day: ", day)
 		}
-		(*ticketDays)[day][ticket.Plate] = true
-		mu.Unlock()
+		server.ticketDays[day][ticket.Plate] = true
+		server.mu.Unlock()
 	}
 }
