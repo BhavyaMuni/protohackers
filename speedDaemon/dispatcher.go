@@ -72,17 +72,23 @@ func (d *Dispatcher) SendTicket(ticket Ticket) {
 func (d *Dispatcher) MonitorTicketQueue(server *SpeedDaemonServer, tickets <-chan *Ticket) {
 	for ticket := range tickets {
 		server.mu.Lock()
-		day := ticket.Timestamp1 / 86400
-		if _, ok := server.ticketDays[day]; !ok {
-			server.ticketDays[day] = make(map[string]bool)
+		day1 := ticket.Timestamp1 / 86400
+		day2 := ticket.Timestamp2 / 86400
+		if _, ok := server.ticketDays[day1]; !ok {
+			server.ticketDays[day1] = make(map[string]bool)
 		}
-		log.Println("Ticket days: ", server.ticketDays[day], "for plate: ", ticket.Plate, "on day: ", day)
-		if _, ok := server.ticketDays[day][ticket.Plate]; !ok {
+		if _, ok := server.ticketDays[day2]; !ok {
+			server.ticketDays[day2] = make(map[string]bool)
+		}
+		_, d1ok := server.ticketDays[day1][ticket.Plate]
+		_, d2ok := server.ticketDays[day2][ticket.Plate]
+		if !d1ok && !d2ok {
 			go d.SendTicket(*ticket)
 		} else {
-			log.Println("Ticket already sent: ", ticket.Plate, "on day: ", day)
+			log.Println("Ticket already sent: ", ticket.Plate)
 		}
-		server.ticketDays[day][ticket.Plate] = true
+		server.ticketDays[day1][ticket.Plate] = true
+		server.ticketDays[day2][ticket.Plate] = true
 		server.mu.Unlock()
 	}
 }
