@@ -38,7 +38,7 @@ func (m *IAmDispatcherMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 }
 
 func (d *Dispatcher) CheckSpeedViolation(observations []Observation, currentObservation Observation) {
-	for i := 0; i < len(observations)-1; i++ {
+	for i := range len(observations) - 1 {
 		if observations[i].Camera.Road == currentObservation.Camera.Road {
 			distance := currentObservation.Camera.Mile - observations[i].Camera.Mile
 			time := currentObservation.Timestamp - observations[i].Timestamp

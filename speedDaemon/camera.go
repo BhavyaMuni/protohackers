@@ -51,5 +51,7 @@ func (m *PlateMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 
 func (m *IAmCameraMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	log.Println("IAmCameraMessage:", m)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.cameras[conn] = Camera{Road: m.Road, Mile: m.Mile, Limit: m.Limit, Conn: conn}
 }
