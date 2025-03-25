@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/binary"
 	"errors"
-	"log"
 	"net"
 )
 
@@ -37,7 +36,6 @@ type ErrorMessage struct {
 }
 
 func ParseMessage(buf *bufio.Reader) (Message, MessageType, error) {
-	log.Println("Parsing message")
 	bufType, err := buf.Peek(1)
 	if err != nil {
 		return nil, ErrorMessageType, err
