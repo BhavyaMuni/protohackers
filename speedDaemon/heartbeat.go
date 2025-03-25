@@ -26,7 +26,6 @@ func (m *WantHeartbeatMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 
 func SendHeartbeat(conn *net.Conn, interval uint32) {
 	tickerDuration := time.Duration(float64(interval)) * time.Millisecond * 100
-	log.Println("Heartbeat interval: ", tickerDuration)
 	if tickerDuration <= 0 {
 		log.Println("Heartbeat interval is 0, not sending heartbeat")
 		return
@@ -36,7 +35,6 @@ func SendHeartbeat(conn *net.Conn, interval uint32) {
 		heartbeatMsg := HeartbeatMessage{MessageType: HeartbeatMessageType}
 		err := binary.Write(*conn, binary.BigEndian, heartbeatMsg)
 		if err != nil {
-			log.Println("Error sending heartbeat message: ", err)
 			return
 		}
 	}

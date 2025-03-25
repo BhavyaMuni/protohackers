@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
+	"sync"
 )
 
 type IAmDispatcherMessage struct {
@@ -47,16 +48,14 @@ func (m *IAmDispatcherMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 		dispatcher := Dispatcher{NumRoads: m.NumRoads, Roads: m.Roads, Conn: conn}
 		if _, ok := s.tickets[road]; !ok {
 			s.tickets[road] = make(chan *Ticket)
-			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays)
+			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays, &s.mu)
 		} else {
-			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays)
+			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays, &s.mu)
 		}
-		log.Println("Dispatcher for road", road, "added: ", dispatcher)
 	}
 }
 
 func (d *Dispatcher) SendTicket(ticket Ticket) {
-	log.Println("Sending ticket: ", ticket)
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, TicketMessageType)
 	binary.Write(buf, binary.BigEndian, uint8(len(ticket.Plate)))
@@ -71,8 +70,9 @@ func (d *Dispatcher) SendTicket(ticket Ticket) {
 	log.Println("Sent ticket: ", ticket)
 }
 
-func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[uint32]map[string]bool) {
+func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[uint32]map[string]bool, mu *sync.Mutex) {
 	for ticket := range tickets {
+		mu.Lock()
 		day := ticket.Timestamp1 / 86400
 		if _, ok := (*ticketDays)[day]; !ok {
 			(*ticketDays)[day] = make(map[string]bool)
@@ -81,5 +81,7 @@ func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[
 			go d.SendTicket(*ticket)
 		}
 		(*ticketDays)[day][ticket.Plate] = true
+		log.Println("Ticket days: ", (*ticketDays)[day])
+		mu.Unlock()
 	}
 }

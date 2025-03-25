@@ -36,15 +36,13 @@ func (ssd *SpeedDaemonServer) handleConnection(conn net.Conn) {
 	buf := bufio.NewReader(conn)
 	defer ssd.disconnectClient(conn)
 	for {
-		message, messageType, err := ParseMessage(buf)
+		message, _, err := ParseMessage(buf)
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from client:", err)
 			}
 			break
 		}
-		log.Println("Message:", message)
-		log.Println("MessageType:", messageType)
 		message.Handle(ssd, &conn)
 	}
 }
