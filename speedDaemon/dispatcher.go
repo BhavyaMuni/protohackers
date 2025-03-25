@@ -77,11 +77,13 @@ func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[
 		if _, ok := (*ticketDays)[day]; !ok {
 			(*ticketDays)[day] = make(map[string]bool)
 		}
+		log.Println("Ticket days: ", (*ticketDays)[day])
 		if _, ok := (*ticketDays)[day][ticket.Plate]; !ok {
 			go d.SendTicket(*ticket)
+		} else {
+			log.Println("Ticket already sent: ", ticket.Plate, "on day: ", day)
 		}
 		(*ticketDays)[day][ticket.Plate] = true
-		log.Println("Ticket days: ", (*ticketDays)[day])
 		mu.Unlock()
 	}
 }
