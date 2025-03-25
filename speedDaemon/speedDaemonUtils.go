@@ -11,7 +11,7 @@ import (
 const (
 	ErrorMessageType         MessageType = 0x10
 	PlateMessageType         MessageType = 0x20
-	TicketMessageType        MessageType = 0x30
+	TicketMessageType        MessageType = 0x21
 	WantHeartbeatMessageType MessageType = 0x40
 	HeartbeatMessageType     MessageType = 0x41
 	IAmCameraMessageType     MessageType = 0x80
@@ -46,7 +46,6 @@ func ParseMessage(buf *bufio.Reader) (Message, MessageType, error) {
 	switch mType {
 	case PlateMessageType:
 		plateMsg := &PlateMessage{MessageType: mType}
-		log.Println("PlateMessageType:", mType)
 		buf.ReadByte()
 		numLength, err := buf.ReadByte()
 		if err != nil {

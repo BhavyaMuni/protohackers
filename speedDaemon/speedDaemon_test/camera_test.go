@@ -1,11 +1,8 @@
 package speedDaemon_test
 
 import (
-	"encoding/binary"
-	"log"
-	"net"
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/BhavyaMuni/protohackers/speedDaemon"
 )
@@ -23,23 +20,9 @@ type TestPlateMessage struct {
 }
 
 func TestCamera(t *testing.T) {
-	conn, err := net.Dial("tcp", "localhost:10006")
-	if err != nil {
-		log.Fatal(err)
+	speed := speedDaemon.FindSpeed(1106, 10, 4869280, 4817702)
+	if speed != 100 {
+		t.Errorf("Expected speed to be 100, got %f", speed)
 	}
-	iamCameraMsg := &speedDaemon.IAmCameraMessage{
-		MessageType: speedDaemon.IAmCameraMessageType,
-		Road:        1,
-	}
-	binary.Write(conn, binary.BigEndian, iamCameraMsg)
-	plateMsg := &TestPlateMessage{
-		MessageType: 32,
-		NumPlates:   6,
-		Plates:      [6]byte{'A', 'B', 'C', '1', '2', '3'},
-		Timestamp:   uint32(time.Now().Unix()),
-	}
-	err = binary.Write(conn, binary.BigEndian, plateMsg)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fmt.Println("Speed: ", speed)
 }

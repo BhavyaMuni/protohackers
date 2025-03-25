@@ -1,6 +1,7 @@
 package speedDaemon
 
 import (
+	"bytes"
 	"encoding/binary"
 	"log"
 	"net"
@@ -29,49 +30,56 @@ type TicketMessage struct {
 	Speed      uint16
 }
 
+type Ticket struct {
+	Plate      string
+	Road       uint16
+	Mile1      uint16
+	Timestamp1 uint32
+	Mile2      uint16
+	Timestamp2 uint32
+	Speed      uint16
+}
+
 func (m *IAmDispatcherMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, road := range m.Roads {
-		s.roadDispatchers[road] = Dispatcher{NumRoads: m.NumRoads, Roads: m.Roads, Conn: conn}
-	}
-}
-
-func (d *Dispatcher) CheckSpeedViolation(observations []Observation, currentObservation Observation) {
-	for i := 0; i < len(observations)-1; i++ {
-		if observations[i].Camera.Road == currentObservation.Camera.Road {
-			distance := currentObservation.Camera.Mile - observations[i].Camera.Mile
-			time := currentObservation.Timestamp - observations[i].Timestamp
-			speed := uint16(uint32(distance) / time)
-			if speed > currentObservation.Camera.Limit {
-				if currentObservation.Timestamp > observations[i].Timestamp {
-					d.SendTicket(observations[i], currentObservation, speed)
-				} else {
-					d.SendTicket(currentObservation, observations[i], speed)
-				}
-			}
+		dispatcher := Dispatcher{NumRoads: m.NumRoads, Roads: m.Roads, Conn: conn}
+		if _, ok := s.tickets[road]; !ok {
+			s.tickets[road] = make(chan *Ticket)
+			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays)
+		} else {
+			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays)
 		}
+		log.Println("Dispatcher for road", road, "added: ", dispatcher)
 	}
 }
 
-func (d *Dispatcher) SendTicket(observation1 Observation, observation2 Observation, speed uint16) {
-	ticketMsg := TicketMessage{
-		MessageType: TicketMessageType,
-		Road:        observation1.Camera.Road,
-		Mile1:       observation1.Camera.Mile,
-		Timestamp1:  observation1.Timestamp,
-		Mile2:       observation2.Camera.Mile,
-		Timestamp2:  observation2.Timestamp,
-		Speed:       speed,
-	}
-	plateBytes := []byte(observation1.Plate)
-	numPlateBytes := uint8(len(plateBytes))
+func (d *Dispatcher) SendTicket(ticket Ticket) {
+	log.Println("Sending ticket: ", ticket)
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, TicketMessageType)
+	binary.Write(buf, binary.BigEndian, uint8(len(ticket.Plate)))
+	buf.WriteString(ticket.Plate)
+	binary.Write(buf, binary.BigEndian, ticket.Road)
+	binary.Write(buf, binary.BigEndian, ticket.Mile1)
+	binary.Write(buf, binary.BigEndian, ticket.Timestamp1)
+	binary.Write(buf, binary.BigEndian, ticket.Mile2)
+	binary.Write(buf, binary.BigEndian, ticket.Timestamp2)
+	binary.Write(buf, binary.BigEndian, ticket.Speed)
+	binary.Write(*d.Conn, binary.BigEndian, buf.Bytes())
+	log.Println("Sent ticket: ", ticket)
+}
 
-	plateBytes = append(plateBytes, numPlateBytes)
-	ticketMsg.Plate = string(plateBytes)
-
-	err := binary.Write(*d.Conn, binary.BigEndian, ticketMsg)
-	if err != nil {
-		log.Println("Error sending ticket:", err)
+func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[uint32]map[string]bool) {
+	for ticket := range tickets {
+		day := ticket.Timestamp1 / 86400
+		if _, ok := (*ticketDays)[day]; !ok {
+			(*ticketDays)[day] = make(map[string]bool)
+		}
+		if _, ok := (*ticketDays)[day][ticket.Plate]; !ok {
+			go d.SendTicket(*ticket)
+		}
+		(*ticketDays)[day][ticket.Plate] = true
 	}
 }

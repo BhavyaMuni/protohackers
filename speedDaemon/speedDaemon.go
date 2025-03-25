@@ -12,19 +12,21 @@ import (
 
 type SpeedDaemonServer struct {
 	server.BaseServer
-	mu              sync.Mutex
-	observations    map[string][]Observation
-	cameras         map[*net.Conn]Camera
-	dispatchers     map[*net.Conn]Dispatcher
-	roadDispatchers map[uint16]Dispatcher
+	mu           sync.Mutex
+	observations map[string][]Observation
+	cameras      map[*net.Conn]Camera
+	dispatchers  map[*net.Conn]Dispatcher
+	tickets      map[uint16]chan *Ticket
+	ticketDays   map[uint32]map[string]bool
 }
 
 func NewSpeedDaemonServer() *SpeedDaemonServer {
 	ssd := &SpeedDaemonServer{
-		observations:    make(map[string][]Observation),
-		cameras:         make(map[*net.Conn]Camera),
-		dispatchers:     make(map[*net.Conn]Dispatcher),
-		roadDispatchers: make(map[uint16]Dispatcher),
+		observations: make(map[string][]Observation),
+		cameras:      make(map[*net.Conn]Camera),
+		dispatchers:  make(map[*net.Conn]Dispatcher),
+		tickets:      make(map[uint16]chan *Ticket),
+		ticketDays:   make(map[uint32]map[string]bool),
 	}
 	ssd.HandleConnectionFunc = ssd.handleConnection
 	return ssd
@@ -32,6 +34,7 @@ func NewSpeedDaemonServer() *SpeedDaemonServer {
 
 func (ssd *SpeedDaemonServer) handleConnection(conn net.Conn) {
 	buf := bufio.NewReader(conn)
+	defer ssd.disconnectClient(conn)
 	for {
 		message, messageType, err := ParseMessage(buf)
 		if err != nil {
@@ -44,4 +47,17 @@ func (ssd *SpeedDaemonServer) handleConnection(conn net.Conn) {
 		log.Println("MessageType:", messageType)
 		message.Handle(ssd, &conn)
 	}
+}
+
+func (ssd *SpeedDaemonServer) disconnectClient(conn net.Conn) {
+	ssd.mu.Lock()
+	defer ssd.mu.Unlock()
+
+	delete(ssd.cameras, &conn)
+
+	delete(ssd.dispatchers, &conn)
+
+	log.Println("Disconnected client: ", conn.RemoteAddr())
+
+	defer conn.Close()
 }

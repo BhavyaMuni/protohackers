@@ -6,6 +6,7 @@ WORKDIR /usr/src/app
 COPY go.mod ./
 RUN go mod download && go mod verify
 COPY server/ ./server/
+COPY speedDaemon/ ./speedDaemon/
 COPY main.go .
 RUN go build -v -o /run-app .
 
@@ -19,5 +20,6 @@ EXPOSE  10002
 EXPOSE  10003
 EXPOSE  10004
 EXPOSE  10005
+EXPOSE  10006
 
 CMD ["run-app"]
