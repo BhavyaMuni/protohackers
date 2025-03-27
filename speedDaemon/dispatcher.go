@@ -43,14 +43,21 @@ type Ticket struct {
 func (m *IAmDispatcherMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if _, ok := s.dispatchers[conn]; ok {
+		s.SendError(*conn, "Dispatcher already registered")
+		return
+	}
+	if _, ok := s.cameras[conn]; !ok {
+		s.SendError(*conn, "Camera already registered")
+		return
+	}
+
 	for _, road := range m.Roads {
 		dispatcher := Dispatcher{NumRoads: m.NumRoads, Roads: m.Roads, Conn: conn}
 		if _, ok := s.tickets[road]; !ok {
 			s.tickets[road] = make(chan *Ticket)
-			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays)
-		} else {
-			go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays)
 		}
+		go dispatcher.MonitorTicketQueue(s.tickets[road], &s.ticketDays)
 	}
 }
 
@@ -82,12 +89,12 @@ func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[
 		_, d1ok := (*ticketDays)[day1][ticket.Plate]
 		_, d2ok := (*ticketDays)[day2][ticket.Plate]
 		if !d1ok && !d2ok {
+			(*ticketDays)[day1][ticket.Plate] = true
+			(*ticketDays)[day2][ticket.Plate] = true
 			go d.SendTicket(*ticket)
 			log.Println("Sent ticket: ", ticket.Plate, "on day: ", day1, "and", day2)
 		} else {
 			log.Println("Ticket already sent: ", ticket.Plate, "on day: ", day1, "and", day2)
 		}
-		(*ticketDays)[day1][ticket.Plate] = true
-		(*ticketDays)[day2][ticket.Plate] = true
 	}
 }

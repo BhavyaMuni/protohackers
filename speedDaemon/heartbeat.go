@@ -17,11 +17,12 @@ type WantHeartbeatMessage struct {
 }
 
 func (m *WantHeartbeatMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
-	if m.Interval <= 0 {
-		log.Println("Heartbeat interval is 0, not sending heartbeat")
-		return
+	if _, ok := s.heartbeats[conn]; !ok {
+		s.heartbeats[conn] = true
+		go SendHeartbeat(conn, m.Interval)
+	} else {
+		s.SendError(*conn, "Heartbeat already sent")
 	}
-	go SendHeartbeat(conn, m.Interval)
 }
 
 func SendHeartbeat(conn *net.Conn, interval uint32) {

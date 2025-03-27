@@ -2,6 +2,8 @@ package speedDaemon
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"io"
 	"log"
 	"net"
@@ -17,6 +19,7 @@ type SpeedDaemonServer struct {
 	cameras      map[*net.Conn]Camera
 	dispatchers  map[*net.Conn]Dispatcher
 	tickets      map[uint16]chan *Ticket
+	heartbeats   map[*net.Conn]bool
 	ticketDays   map[uint32]map[string]bool
 }
 
@@ -26,6 +29,7 @@ func NewSpeedDaemonServer() *SpeedDaemonServer {
 		cameras:      make(map[*net.Conn]Camera),
 		dispatchers:  make(map[*net.Conn]Dispatcher),
 		tickets:      make(map[uint16]chan *Ticket),
+		heartbeats:   make(map[*net.Conn]bool),
 		ticketDays:   make(map[uint32]map[string]bool),
 	}
 	ssd.HandleConnectionFunc = ssd.handleConnection
@@ -40,6 +44,7 @@ func (ssd *SpeedDaemonServer) handleConnection(conn net.Conn) {
 		if err != nil {
 			if err != io.EOF {
 				log.Println("Error reading from client:", err)
+				ssd.SendError(conn, "Error reading from client")
 			}
 			break
 		}
@@ -55,7 +60,19 @@ func (ssd *SpeedDaemonServer) disconnectClient(conn net.Conn) {
 
 	delete(ssd.dispatchers, &conn)
 
+	delete(ssd.heartbeats, &conn)
+
 	log.Println("Disconnected client: ", conn.RemoteAddr())
 
 	defer conn.Close()
+}
+
+func (ssd *SpeedDaemonServer) SendError(conn net.Conn, message string) {
+	messageType := ErrorMessageType
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, messageType)
+	buf.WriteString(message)
+	binary.Write(conn, binary.BigEndian, buf.Bytes())
+	log.Println("Sent error: ", message)
+	ssd.disconnectClient(conn)
 }

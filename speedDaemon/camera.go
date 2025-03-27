@@ -34,6 +34,10 @@ type Observation struct {
 func (m *PlateMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if _, ok := s.cameras[conn]; !ok {
+		s.SendError(*conn, "Camera not registered")
+		return
+	}
 
 	if _, ok := s.observations[m.Plate]; !ok {
 		s.observations[m.Plate] = []Observation{}
@@ -52,6 +56,14 @@ func (m *PlateMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 func (m *IAmCameraMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if _, ok := s.dispatchers[conn]; ok {
+		s.SendError(*conn, "Dispatcher already registered")
+		return
+	}
+	if _, ok := s.cameras[conn]; !ok {
+		s.SendError(*conn, "Camera already registered")
+		return
+	}
 	s.cameras[conn] = Camera{Road: m.Road, Mile: m.Mile, Limit: m.Limit, Conn: conn}
 	if _, ok := s.tickets[m.Road]; !ok {
 		s.tickets[m.Road] = make(chan *Ticket)
@@ -78,11 +90,15 @@ func CreateTicket(observation1 Observation, observation2 Observation, speed floa
 func CheckSpeedViolation(observations []Observation, currentObservation Observation, tickets chan<- *Ticket) {
 	for i := range observations {
 		if observations[i].Camera.Road == currentObservation.Camera.Road {
+			// Skip if observations are more than 1 day apart (86400 seconds)
+			if math.Abs(float64(observations[i].Timestamp)-float64(currentObservation.Timestamp)) > 86400 {
+				continue
+			}
+
 			speed := FindSpeed(observations[i].Camera.Mile, currentObservation.Camera.Mile, observations[i].Timestamp, currentObservation.Timestamp)
 			if math.Abs(speed) >= (float64(currentObservation.Camera.Limit) + 0.5) {
 				ticket := CreateTicket(observations[i], currentObservation, math.Abs(speed)*100)
 				tickets <- &ticket
-				return
 			}
 		}
 	}
