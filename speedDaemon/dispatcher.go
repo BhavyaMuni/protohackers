@@ -52,8 +52,9 @@ func (m *IAmDispatcherMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 		return
 	}
 
+	dispatcher := Dispatcher{NumRoads: m.NumRoads, Roads: m.Roads, Conn: conn}
+	s.dispatchers[conn] = dispatcher
 	for _, road := range m.Roads {
-		dispatcher := Dispatcher{NumRoads: m.NumRoads, Roads: m.Roads, Conn: conn}
 		if _, ok := s.tickets[road]; !ok {
 			s.tickets[road] = make(chan *Ticket)
 		}

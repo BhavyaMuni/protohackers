@@ -63,7 +63,7 @@ func (m *IAmCameraMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 		return
 	}
 	if _, ok := s.cameras[conn]; ok {
-		s.SendError(conn, "bad")
+		s.SendError(conn, "Camera already registered")
 		return
 	}
 	s.cameras[conn] = Camera{Road: m.Road, Mile: m.Mile, Limit: m.Limit, Conn: conn}

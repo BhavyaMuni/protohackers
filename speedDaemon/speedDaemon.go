@@ -69,7 +69,6 @@ func (ssd *SpeedDaemonServer) disconnectClient(conn *net.Conn) {
 }
 
 func (ssd *SpeedDaemonServer) SendError(conn *net.Conn, message string) {
-	defer ssd.disconnectClient(conn)
 	messageType := ErrorMessageType
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, messageType)
