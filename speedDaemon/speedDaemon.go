@@ -69,12 +69,16 @@ func (ssd *SpeedDaemonServer) disconnectClient(conn *net.Conn) {
 }
 
 func (ssd *SpeedDaemonServer) SendError(conn *net.Conn, message string) {
+	defer ssd.disconnectClient(conn)
 	messageType := ErrorMessageType
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, messageType)
 	binary.Write(buf, binary.BigEndian, uint8(len(message)))
 	buf.WriteString(message)
-	binary.Write(*conn, binary.BigEndian, buf.Bytes())
-	log.Println("Sent error: ", message)
-	ssd.disconnectClient(conn)
+	err := binary.Write(*conn, binary.BigEndian, buf.Bytes())
+	if err != nil {
+		log.Println("Error sending error: ", err)
+		return
+	}
+	log.Println("Sent error: ", message, "to", (*conn).RemoteAddr())
 }
