@@ -44,11 +44,11 @@ func (m *IAmDispatcherMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.dispatchers[conn]; ok {
-		s.SendError(*conn, "Dispatcher already registered")
+		s.SendError(conn, "Dispatcher already registered")
 		return
 	}
-	if _, ok := s.cameras[conn]; !ok {
-		s.SendError(*conn, "Camera already registered")
+	if _, ok := s.cameras[conn]; ok {
+		s.SendError(conn, "Camera already registered")
 		return
 	}
 
@@ -92,9 +92,6 @@ func (d *Dispatcher) MonitorTicketQueue(tickets <-chan *Ticket, ticketDays *map[
 			(*ticketDays)[day1][ticket.Plate] = true
 			(*ticketDays)[day2][ticket.Plate] = true
 			go d.SendTicket(*ticket)
-			log.Println("Sent ticket: ", ticket.Plate, "on day: ", day1, "and", day2)
-		} else {
-			log.Println("Ticket already sent: ", ticket.Plate, "on day: ", day1, "and", day2)
 		}
 	}
 }

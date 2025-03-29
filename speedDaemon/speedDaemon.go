@@ -38,41 +38,43 @@ func NewSpeedDaemonServer() *SpeedDaemonServer {
 
 func (ssd *SpeedDaemonServer) handleConnection(conn net.Conn) {
 	buf := bufio.NewReader(conn)
-	defer ssd.disconnectClient(conn)
+	defer ssd.disconnectClient(&conn)
 	for {
 		message, _, err := ParseMessage(buf)
 		if err != nil {
 			if err != io.EOF {
-				log.Println("Error reading from client:", err)
-				ssd.SendError(conn, "Error reading from client")
+				log.Println("Error reading from client: ", err)
+				ssd.SendError(&conn, "Error reading from client")
 			}
 			break
 		}
+		log.Println("Received message: ", message, "from", conn.RemoteAddr(), "conn", &conn)
 		message.Handle(ssd, &conn)
 	}
 }
 
-func (ssd *SpeedDaemonServer) disconnectClient(conn net.Conn) {
+func (ssd *SpeedDaemonServer) disconnectClient(conn *net.Conn) {
 	ssd.mu.Lock()
 	defer ssd.mu.Unlock()
+	defer (*conn).Close()
 
-	delete(ssd.cameras, &conn)
+	delete(ssd.cameras, conn)
 
-	delete(ssd.dispatchers, &conn)
+	delete(ssd.dispatchers, conn)
 
-	delete(ssd.heartbeats, &conn)
+	delete(ssd.heartbeats, conn)
 
-	log.Println("Disconnected client: ", conn.RemoteAddr())
+	log.Println("Disconnected client: ", (*conn).RemoteAddr())
 
-	defer conn.Close()
 }
 
-func (ssd *SpeedDaemonServer) SendError(conn net.Conn, message string) {
+func (ssd *SpeedDaemonServer) SendError(conn *net.Conn, message string) {
 	messageType := ErrorMessageType
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, messageType)
+	binary.Write(buf, binary.BigEndian, uint8(len(message)))
 	buf.WriteString(message)
-	binary.Write(conn, binary.BigEndian, buf.Bytes())
+	binary.Write(*conn, binary.BigEndian, buf.Bytes())
 	log.Println("Sent error: ", message)
 	ssd.disconnectClient(conn)
 }

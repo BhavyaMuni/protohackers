@@ -1,6 +1,7 @@
 package speedDaemon
 
 import (
+	"log"
 	"math"
 	"net"
 )
@@ -35,7 +36,7 @@ func (m *PlateMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.cameras[conn]; !ok {
-		s.SendError(*conn, "Camera not registered")
+		s.SendError(conn, "Camera not registered")
 		return
 	}
 
@@ -56,12 +57,13 @@ func (m *PlateMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 func (m *IAmCameraMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	log.Println("IAmCameraMessage received: ", (*conn).RemoteAddr())
 	if _, ok := s.dispatchers[conn]; ok {
-		s.SendError(*conn, "Dispatcher already registered")
+		s.SendError(conn, "Dispatcher already registered")
 		return
 	}
-	if _, ok := s.cameras[conn]; !ok {
-		s.SendError(*conn, "Camera already registered")
+	if _, ok := s.cameras[conn]; ok {
+		s.SendError(conn, "bad")
 		return
 	}
 	s.cameras[conn] = Camera{Road: m.Road, Mile: m.Mile, Limit: m.Limit, Conn: conn}

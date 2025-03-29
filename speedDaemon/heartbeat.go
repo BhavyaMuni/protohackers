@@ -21,7 +21,7 @@ func (m *WantHeartbeatMessage) Handle(s *SpeedDaemonServer, conn *net.Conn) {
 		s.heartbeats[conn] = true
 		go SendHeartbeat(conn, m.Interval)
 	} else {
-		s.SendError(*conn, "Heartbeat already sent")
+		s.SendError(conn, "Heartbeat already sent")
 	}
 }
 
