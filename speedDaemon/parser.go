@@ -23,22 +23,10 @@ type Message interface {
 	Handle(s *SpeedDaemonServer, conn *net.Conn)
 }
 
-type ClientType int
-
-const (
-	CAMERA ClientType = iota
-	DISPATCHER
-)
-
-type ErrorMessage struct {
-	MessageType
-	Msg string
-}
-
-func ParseMessage(buf *bufio.Reader) (Message, MessageType, error) {
+func ParseMessage(buf *bufio.Reader) (Message, error) {
 	bufType, err := buf.Peek(1)
 	if err != nil {
-		return nil, ErrorMessageType, err
+		return nil, err
 	}
 	mType := MessageType(bufType[0])
 	switch mType {
@@ -47,33 +35,33 @@ func ParseMessage(buf *bufio.Reader) (Message, MessageType, error) {
 		buf.ReadByte()
 		numLength, err := buf.ReadByte()
 		if err != nil {
-			return nil, PlateMessageType, err
+			return nil, err
 		}
 		plateBytes := make([]byte, numLength)
 		_, err = buf.Read(plateBytes)
 		if err != nil {
-			return nil, PlateMessageType, err
+			return nil, err
 		}
 		plateMsg.Plate = string(plateBytes)
 		err = binary.Read(buf, binary.BigEndian, &plateMsg.Timestamp)
 		if err != nil {
-			return nil, PlateMessageType, err
+			return nil, err
 		}
-		return plateMsg, PlateMessageType, nil
+		return plateMsg, nil
 	case WantHeartbeatMessageType:
 		wantHeartbeatMsg := &WantHeartbeatMessage{}
 		err := binary.Read(buf, binary.BigEndian, wantHeartbeatMsg)
 		if err != nil {
-			return nil, WantHeartbeatMessageType, err
+			return nil, err
 		}
-		return wantHeartbeatMsg, WantHeartbeatMessageType, nil
+		return wantHeartbeatMsg, nil
 	case IAmCameraMessageType:
 		iAmCameraMsg := &IAmCameraMessage{}
 		err := binary.Read(buf, binary.BigEndian, iAmCameraMsg)
 		if err != nil {
-			return nil, IAmCameraMessageType, err
+			return nil, err
 		}
-		return iAmCameraMsg, IAmCameraMessageType, nil
+		return iAmCameraMsg, nil
 	case IAmDispatcherMessageType:
 		iAmDispatcherMsg := &IAmDispatcherMessage{
 			MessageType: IAmDispatcherMessageType,
@@ -82,17 +70,17 @@ func ParseMessage(buf *bufio.Reader) (Message, MessageType, error) {
 		buf.ReadByte()
 		numRoads, err := buf.ReadByte()
 		if err != nil {
-			return nil, IAmDispatcherMessageType, err
+			return nil, err
 		}
 		iAmDispatcherMsg.NumRoads = numRoads
 		roads := make([]uint16, numRoads)
 		err = binary.Read(buf, binary.BigEndian, roads)
 		if err != nil {
-			return nil, IAmDispatcherMessageType, err
+			return nil, err
 		}
 		iAmDispatcherMsg.Roads = roads
-		return iAmDispatcherMsg, IAmDispatcherMessageType, nil
+		return iAmDispatcherMsg, nil
 	default:
-		return nil, ErrorMessageType, errors.New("unknown message type")
+		return nil, errors.New("unknown message type")
 	}
 }
