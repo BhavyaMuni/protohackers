@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/BhavyaMuni/protohackers/lineReversal"
 	"github.com/BhavyaMuni/protohackers/server"
 	"github.com/BhavyaMuni/protohackers/speedDaemon"
 )
@@ -29,6 +30,9 @@ func main() {
 
 	ssd := speedDaemon.NewSpeedDaemonServer()
 	go ssd.Start(":10006")
+
+	lrs := lineReversal.NewLineReversalServer()
+	go lrs.Start(":10007")
 
 	select {}
 }
